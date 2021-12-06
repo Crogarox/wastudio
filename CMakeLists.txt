@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 project(WASTUDIO)
-
-#set(PLANK_CPP src/plank.cpp)
 
 set(GLUTEN_LIBS GLEW GL glut GLU)
 set(WAVEFRONT_LIBS GLEW GL)
@@ -35,7 +33,6 @@ if(WIN32)
     )
   endif()
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
   set(PLATFORM_INCLUDE_DIRECTORIES
     /usr/local/include
     /usr/X11R6/include
@@ -116,3 +113,4 @@ add_executable(wastudio
 )
 
 target_link_libraries(wastudio wavefront gluten)
+

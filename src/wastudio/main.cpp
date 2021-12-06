@@ -20,20 +20,21 @@ void safe_main(int argc, char* argv[])
   core.setSize(800, 600);
   core.setTitle("Wavefront Animation Studio");
 
-  try
+  if(argc > 1)
   {
-    if(argc > 1)
+    try
     {
       core.add(new ModelWindow(&core, std::string(argv[1])));
     }
-    else
+    catch(exception& e)
     {
-      core.add(new IntroWindow(&core));
+      core.add(new TestWindow(&core));
+      new Gluten::MessageBox(&core, e.what());
     }
   }
-  catch(exception& e)
+  else
   {
-    core.add(new Gluten::MessageBox(&core, e.what()));
+    core.add(new IntroWindow(&core));
   }
 
   core.run();
@@ -45,16 +46,16 @@ int main(int argc, char* argv[])
   FreeConsole();
 #endif
 
-//  try
-//  {
+  try
+  {
     safe_main(argc, argv);
 
     return 0;
-//  }
-//  catch(exception& e)
-//  {
-//    cout << "Exception: " << e.what() << endl;
-//
-//    return 1;
-//  }
+  }
+  catch(exception& e)
+  {
+    cout << "Exception: " << e.what() << endl;
+
+    return 1;
+  }
 }

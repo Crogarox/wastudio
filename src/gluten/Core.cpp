@@ -10,112 +10,102 @@
 
 namespace Gluten
 {
-  Core* Core::core = NULL;
 
-  void Core::display()
+Core* Core::core = NULL;
+
+void Core::display()
+{
+  glViewport(0, 0, (GLsizei)core->getWidth(), (GLsizei)core->getHeight());
+  glClearColor(1.0,1.0,1.0,1.0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+
+  gluPerspective(60, (GLfloat)core->getWidth() / (GLfloat)core->getHeight(),
+    0.1, 1000.0);
+
+  glMatrixMode(GL_MODELVIEW);
+
+  for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
   {
-    glClearColor(1.0,1.0,1.0,1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
-    {
-      glLoadIdentity();
-      core->getWindows()->at(windowIndex)->display();
-    }
-
-    //glTranslatef(0, 0, -5);
-    //glutSolidCube(0.5);
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
     glLoadIdentity();
-    gluOrtho2D(0, core->getWidth(), 0, core->getHeight());
-    glScalef(1, -1, 1);
-    glTranslatef(0, -core->getHeight(), 0);
-    glMatrixMode(GL_MODELVIEW);
-
-    for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
-    {
-      glLoadIdentity();
-      core->getWindows()->at(windowIndex)->draw();
-    }
-
-    //glBegin(GL_QUADS);
-    //glVertex2f(125, 125);
-    //glVertex2f(125, 375);
-    //glVertex2f(375, 375);
-    //glVertex2f(375, 125);
-    //glEnd();
-
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-
-    //for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
-    //{
-    //  glLoadIdentity();
-    //  core->getWindows()->at(windowIndex)->display();
-    //}
-
-    glutSwapBuffers();
+    core->getWindows()->at(windowIndex)->display();
   }
 
-  void Core::add(Window* window)
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluOrtho2D(0, core->getWidth(), 0, core->getHeight());
+  glScalef(1, -1, 1);
+  glTranslatef(0, -core->getHeight(), 0);
+  glMatrixMode(GL_MODELVIEW);
+
+  for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
   {
-    windows.push_back(window);
+    glLoadIdentity();
+    core->getWindows()->at(windowIndex)->draw();
   }
 
-  void Core::update()
+  glutSwapBuffers();
+}
+
+void Core::add(Window* window)
+{
+  windows.push_back(window);
+}
+
+void Core::update()
+{
+  for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
   {
-    for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
+    if(core->getWindows()->at(windowIndex)->isClosing() == true)
     {
-      if(core->getWindows()->at(windowIndex)->isClosing() == true)
-      {
-        delete core->getWindows()->at(windowIndex);
-        core->getWindows()->erase(core->getWindows()->begin() + windowIndex);
-      }
-    }
-
-    if(core->getWindows()->size() < 1)
-    {
-      exit(0);
-    }
-
-    for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
-    {
-      core->getWindows()->at(windowIndex)->control();
-      core->getWindows()->at(windowIndex)->updateComponents();
-      core->getWindows()->at(windowIndex)->update();
+      delete core->getWindows()->at(windowIndex);
+      core->getWindows()->erase(core->getWindows()->begin() + windowIndex);
     }
   }
 
-  bool Core::isKeyPressed(unsigned char key)
+  if(core->getWindows()->size() < 1)
   {
-    return keystates[key];
+    exit(0);
   }
 
-  void Core::keyboardUp(unsigned char key, int x, int y)
+  for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
   {
-    core->keystates[key] = false;
-    //glutPostRedisplay();
-    core->processEvent();
+    core->getWindows()->at(windowIndex)->control();
+    core->getWindows()->at(windowIndex)->updateComponents();
+    core->getWindows()->at(windowIndex)->update();
+  }
+}
+
+bool Core::isKeyPressed(unsigned char key)
+{
+  return keystates[key];
+}
+
+void Core::keyboardUp(unsigned char key, int x, int y)
+{
+  core->keystates[key] = false;
+  //glutPostRedisplay();
+  core->processEvent();
+}
+
+void Core::keyboard(unsigned char key, int x, int y)
+{
+  core->keystates[key] = true;
+
+  for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
+  {
+    core->getWindows()->at(windowIndex)->keyTyped(key);
   }
 
-  void Core::keyboard(unsigned char key, int x, int y)
-  {
-    core->keystates[key] = true;
+  //glutPostRedisplay();
+  core->processEvent();
+}
 
-    for(int windowIndex = 0; windowIndex < core->getWindows()->size(); windowIndex++)
-    {
-      core->getWindows()->at(windowIndex)->keyTyped(key);
-    }
-    //glutPostRedisplay();
-    core->processEvent();
-  }
-
-  void Core::idle()
-  {
-    // FPS Limiter
+void Core::idle()
+{
+  // FPS Limiter
   // The static variable to store the previous time snapshot
   static int last = 0;
 
@@ -145,246 +135,242 @@ namespace Gluten
 
   // Set the new last time snapshot to be used next loop
   last = glutGet(GLUT_ELAPSED_TIME);
-    // FPS Limiter
+  // FPS Limiter
 
-    update();
+  update();
 
-    if(core->eventDriven == true || core->eventCount > 0)
+  if(core->eventDriven == true || core->eventCount > 0)
+  {
+    glutPostRedisplay();
+    core->eventCount--;
+  }
+}
+
+void Core::setEventDriven(bool eventDriven)
+{
+  this->eventDriven = eventDriven;
+}
+
+void Core::mouseFunc(int button, int state, int x, int y)
+{
+  Mouse* mouse = core->getMouse();
+
+  if(glutGetModifiers() == GLUT_ACTIVE_CTRL)
+  {
+    core->controlPressed = true;
+  }
+
+  if(button == 0)
+  {
+    if(state == 0)
     {
-      glutPostRedisplay();
-      core->eventCount--;
+      mouse->setButton1(true);
+      core->getWindows()->at(core->getWindows()->size() - 1)->mouseDown(mouse->getX(), mouse->getY(), 1, mouse);
+    }
+    else
+    {
+      mouse->setButton1(false);
+      core->getWindows()->at(core->getWindows()->size() - 1)->mouseUp(mouse->getX(), mouse->getY(), 1, mouse);
     }
   }
 
-  void Core::setEventDriven(bool eventDriven)
+  if(button == 1)
   {
-    this->eventDriven = eventDriven;
-  }
-
-  void Core::mouseFunc(int button, int state, int x, int y)
-  {
-    Mouse* mouse = core->getMouse();
-
-    if(glutGetModifiers() == GLUT_ACTIVE_CTRL)
+    if(state == 0)
     {
-      core->controlPressed = true;
+      mouse->setButton2(true);
+      core->getWindows()->at(core->getWindows()->size() - 1)->mouseDown(mouse->getX(), mouse->getY(), 2, mouse);
     }
-
-    if(button == 0)
+    else
     {
-      if(state == 0)
-      {
-        mouse->setButton1(true);
-        core->getWindows()->at(core->getWindows()->size() - 1)->mouseDown(mouse->getX(), mouse->getY(), 1, mouse);
-      }
-      else
-      {
-        mouse->setButton1(false);
-        core->getWindows()->at(core->getWindows()->size() - 1)->mouseUp(mouse->getX(), mouse->getY(), 1, mouse);
-      }
-    }
-
-    if(button == 1)
-    {
-      if(state == 0)
-      {
-        mouse->setButton2(true);
-        core->getWindows()->at(core->getWindows()->size() - 1)->mouseDown(mouse->getX(), mouse->getY(), 2, mouse);
-      }
-      else
-      {
-        mouse->setButton2(false);
-        core->getWindows()->at(core->getWindows()->size() - 1)->mouseUp(mouse->getX(), mouse->getY(), 2, mouse);
-      }
-    }
-
-    if(button == 2)
-    {
-      if(state == 0)
-      {
-        mouse->setButton3(true);
-        core->getWindows()->at(core->getWindows()->size() - 1)->mouseDown(mouse->getX(), mouse->getY(), 3, mouse);
-      }
-      else
-      {
-        mouse->setButton3(false);
-        core->getWindows()->at(core->getWindows()->size() - 1)->mouseUp(mouse->getX(), mouse->getY(), 3, mouse);
-      }
-    }
-
-    if(button == 3)
-    {
-      if(state == 0)
-      {
-        mouse->setScrollUp(true);
-        core->getWindows()->at(core->getWindows()->size() - 1)->mouseScroll(mouse->getX(), mouse->getY(), 0, mouse);
-      }
-      else
-      {
-        //mouse->setScrollUp(false);
-      }
-    }
-
-    if(button == 4)
-    {
-      if(state == 0)
-      {
-        mouse->setScrollDown(true);
-        core->getWindows()->at(core->getWindows()->size() - 1)->mouseScroll(mouse->getX(), mouse->getY(), 1, mouse);
-      }
-      else
-      {
-        //mouse->setScrollDown(false);
-      }
-    }
-
-    core->controlPressed = false;
-    core->shiftPressed = false;
-    //glutPostRedisplay();
-    core->processEvent();
-  }
-
-  void Core::motion(int x, int y)
-  {
-    Mouse* mouse = NULL;
-
-    if(core->getWindows()->size() < 1)
-    {
-      return;
-    }
-
-    mouse = core->getMouse();
-    mouse->setX(x);
-    mouse->setY(y);
-
-    core->getWindows()->at(core->getWindows()->size() - 1)->mouseMove(mouse->getX(), mouse->getY(), mouse);
-    //glutPostRedisplay();
-    core->processEvent();
-  }
-
-  void Core::reshape(int width, int height)
-  {
-    core->setWidth(width);
-    core->setHeight(height);
-    glViewport(0, 0, (GLsizei)width, (GLsizei)height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(60, (GLfloat)width / (GLfloat)height, 0.1, 1000.0);
-    glMatrixMode(GL_MODELVIEW);
-    //glutPostRedisplay();
-    core->processEvent();
-  }
-
-  void Core::processEvent()
-  {
-    //glutPostRedisplay();
-    eventCount = 1;
-  }
-
-  Core::Core(int argc, char* argv[])
-  {
-    eventCount = 0;
-    eventDriven = false;
-    controlPressed = false;
-    shiftPressed = false;
-    core = this;
-    mouse.reset(new Mouse());
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGBA);
-    glutInitWindowSize(320, 240);
-    glutInitWindowPosition(100, 100);
-    glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_CONTINUE_EXECUTION);
-    glutCreateWindow("Glut");
-
-    glutDisplayFunc(display);
-    glutIdleFunc(idle);
-    glutReshapeFunc(reshape);
-    glutPassiveMotionFunc(motion);
-    glutMotionFunc(motion);
-    glutMouseFunc(mouseFunc);
-    glutKeyboardFunc(keyboard);
-    glutKeyboardUpFunc(keyboardUp);
-    //glutSpecialFunc(special);
-
-    for(int keyIndex = 0; keyIndex < 512; keyIndex++)
-    {
-      keystates[keyIndex] = false;
+      mouse->setButton2(false);
+      core->getWindows()->at(core->getWindows()->size() - 1)->mouseUp(mouse->getX(), mouse->getY(), 2, mouse);
     }
   }
 
-  Core::~Core()
+  if(button == 2)
   {
-    while(windows.size() > 0)
+    if(state == 0)
     {
-      delete windows.at(0);
-      windows.erase(windows.begin() + 0);
+      mouse->setButton3(true);
+      core->getWindows()->at(core->getWindows()->size() - 1)->mouseDown(mouse->getX(), mouse->getY(), 3, mouse);
+    }
+    else
+    {
+      mouse->setButton3(false);
+      core->getWindows()->at(core->getWindows()->size() - 1)->mouseUp(mouse->getX(), mouse->getY(), 3, mouse);
     }
   }
 
-  void Core::run()
+  if(button == 3)
   {
-    //glEnable(GL_COLOR_MATERIAL);
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_BACK);
-    //glCullFace(GL_FRONT);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glutMainLoop();
+    if(state == 0)
+    {
+      mouse->setScrollUp(true);
+      core->getWindows()->at(core->getWindows()->size() - 1)->mouseScroll(mouse->getX(), mouse->getY(), 0, mouse);
+    }
+    else
+    {
+      //mouse->setScrollUp(false);
+    }
   }
 
-  bool Core::getControlPressed()
+  if(button == 4)
   {
-    return controlPressed;
+    if(state == 0)
+    {
+      mouse->setScrollDown(true);
+      core->getWindows()->at(core->getWindows()->size() - 1)->mouseScroll(mouse->getX(), mouse->getY(), 1, mouse);
+    }
+    else
+    {
+      //mouse->setScrollDown(false);
+    }
   }
 
-  bool Core::getShiftPressed()
+  core->controlPressed = false;
+  core->shiftPressed = false;
+  //glutPostRedisplay();
+  core->processEvent();
+}
+
+void Core::motion(int x, int y)
+{
+  Mouse* mouse = NULL;
+
+  if(core->getWindows()->size() < 1)
   {
-    return shiftPressed;
+    return;
   }
 
-  vector<Window*>* Core::getWindows()
-  {
-    return &windows;
-  }
+  mouse = core->getMouse();
+  mouse->setX(x);
+  mouse->setY(y);
 
-  Mouse* Core::getMouse()
-  {
-    return mouse.get();
-  }
+  core->getWindows()->at(core->getWindows()->size() - 1)->mouseMove(mouse->getX(), mouse->getY(), mouse);
+  //glutPostRedisplay();
+  core->processEvent();
+}
 
-  int Core::getWidth()
-  {
-    return width;
-  }
+void Core::reshape(int width, int height)
+{
+  core->setWidth(width);
+  core->setHeight(height);
 
-  void Core::setWidth(int width)
-  {
-    this->width = width;
-  }
+  //glutPostRedisplay();
+  core->processEvent();
+}
 
-  int Core::getHeight()
-  {
-    return height;
-  }
+void Core::processEvent()
+{
+  //glutPostRedisplay();
+  eventCount = 1;
+}
 
-  void Core::setHeight(int height)
-  {
-    this->height = height;
-  }
+Core::Core(int argc, char* argv[])
+{
+  eventCount = 0;
+  eventDriven = false;
+  controlPressed = false;
+  shiftPressed = false;
+  core = this;
+  mouse.reset(new Mouse());
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGBA);
+  glutInitWindowSize(640, 480);
+  glutInitWindowPosition(100, 100);
+  glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_CONTINUE_EXECUTION);
+  glutCreateWindow("Gluten");
 
-  void Core::setTitle(string title)
-  {
-    glutSetWindowTitle(title.c_str());
-  }
+  glutDisplayFunc(display);
+  glutIdleFunc(idle);
+  glutReshapeFunc(reshape);
+  glutPassiveMotionFunc(motion);
+  glutMotionFunc(motion);
+  glutMouseFunc(mouseFunc);
+  glutKeyboardFunc(keyboard);
+  glutKeyboardUpFunc(keyboardUp);
+  //glutSpecialFunc(special);
 
-  void Core::setSize(int width, int height)
+  for(int keyIndex = 0; keyIndex < 512; keyIndex++)
   {
-    glutReshapeWindow(width, height);
+    keystates[keyIndex] = false;
   }
+}
 
-  Core* Core::getCore()
+Core::~Core()
+{
+  while(windows.size() > 0)
   {
-    return core;
+    delete windows.at(0);
+    windows.erase(windows.begin() + 0);
   }
+}
+
+void Core::run()
+{
+  //glEnable(GL_CULL_FACE);
+  //glCullFace(GL_BACK);
+  //glCullFace(GL_FRONT);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glutMainLoop();
+}
+
+bool Core::getControlPressed()
+{
+  return controlPressed;
+}
+
+bool Core::getShiftPressed()
+{
+  return shiftPressed;
+}
+
+vector<Window*>* Core::getWindows()
+{
+  return &windows;
+}
+
+Mouse* Core::getMouse()
+{
+  return mouse.get();
+}
+
+int Core::getWidth()
+{
+  return width;
+}
+
+void Core::setWidth(int width)
+{
+  this->width = width;
+}
+
+int Core::getHeight()
+{
+  return height;
+}
+
+void Core::setHeight(int height)
+{
+  this->height = height;
+}
+
+void Core::setTitle(string title)
+{
+  glutSetWindowTitle(title.c_str());
+}
+
+void Core::setSize(int width, int height)
+{
+  glutReshapeWindow(width, height);
+}
+
+Core* Core::getCore()
+{
+  return core;
+}
+
 }
 
